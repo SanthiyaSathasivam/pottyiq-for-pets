@@ -35,7 +35,24 @@ The system is designed as an event-driven platform with the following components
 - **Notification Service**: Sends alerts to users  
 - **Analytics Layer**: Aggregates data for future improvements  
 
-*(Add architecture diagram in /diagrams folder and link here)*
+## 🏗️ Architecture Diagram
+
+```mermaid
+flowchart LR
+
+A[Mobile App / IoT Device] --> B[API Gateway]
+B --> C[Event Ingestion Service]
+C --> D[(Event Stream - Kafka / Kinesis)]
+D --> E[(Event Store - DynamoDB / S3)]
+D --> F[Prediction Engine]
+F --> G[(Redis Cache)]
+F --> H[Notification Service]
+H --> I[Push / SMS / Email]
+E --> J[Analytics Pipeline]
+J --> K[(Data Warehouse)]
+K --> L[ML Training]
+L --> F
+```
 
 ---
 
