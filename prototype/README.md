@@ -23,3 +23,11 @@ This prototype demonstrates the core workflow of PottyIQ:
 
 ```bash
 python predictor.py
+```
+## Example Output
+=== PottyIQ Prototype ===
+
+Prediction result:
+- Rule used: feed-rule
+- Next potty window: 09:30 AM – 11:00 AM
+- Alert owner at: 09:20 AM
