@@ -57,7 +57,7 @@ E --> J[Analytics Pipeline]
 J --> K[(Data Warehouse)]
 K --> L[ML Training]
 L --> F
-
+```
 ---
 
 ## 🔄 System Flow
@@ -162,7 +162,7 @@ Prediction result:
 - Rule used: feed-rule
 - Next potty window: 2026-03-31 09:30 AM to 2026-03-31 11:00 AM
 - Alert owner at: 2026-03-31 09:20 AM
-
+```
 ## 🚀 Future Enhancements
 
 - ML-based personalized prediction  
