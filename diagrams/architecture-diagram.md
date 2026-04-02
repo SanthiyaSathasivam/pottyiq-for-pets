@@ -2,9 +2,6 @@
 
 This diagram illustrates the end-to-end event-driven architecture for PottyIQ, showing how pet activity signals are ingested, processed, and used to generate real-time predictions and alerts.
 
-
-# System Diagram
-
 ```mermaid
 flowchart LR
 
