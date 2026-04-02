@@ -1,156 +1,111 @@
-# 🐾 PottyIQ for Pets
+# 🐾 PottyIQ – Predictive Pet Care Platform
 
-PottyIQ for Pets is a predictive pet-care platform that analyzes behavioral events such as feeding, water intake, walks, sleep, and prior potty activity to generate timely potty alerts for pet owners.
+> This project demonstrates end-to-end system design and program execution thinking for a large-scale, real-time platform.
 
-This project demonstrates **end-to-end system design thinking**, focusing on event-driven architecture, scalability, and real-time decision-making.
+PottyIQ predicts when pets need to go using real-time behavioral signals, helping owners prevent accidents and improve training outcomes.
 
 ---
 
 ## 🎯 Problem
 
-Pet owners often struggle to predict potty timing, especially for young pets or during training phases. This leads to inconsistent routines and frequent accidents.
+Pet owners—especially those with young pets—struggle with:
 
-The challenge is to design a system that can:
+- Unpredictable potty timing  
+- Inconsistent training routines  
+- Frequent accidents  
 
-- Continuously track pet activity signals  
+Existing solutions are reactive (after accidents), not proactive.
+
+---
+
+## 💡 Solution
+
+PottyIQ uses an **event-driven architecture** to process pet activity signals (feeding, water intake, sleep, walks, prior potty events) and:
+
 - Predict the next likely potty window  
 - Notify owners at the right time  
+- Continuously improve predictions using feedback  
 
 ---
 
-## 🧠 Solution Overview
+## 🏗️ Architecture Overview
 
-PottyIQ processes pet activity events and applies rule-based logic to estimate the next potty window. Based on predictions, it triggers alerts to help pet owners act proactively.
-
-The system is designed as a **real-time, event-driven pipeline** that separates ingestion, prediction, and notification for scalability and resilience.
-
----
-
-## 🏗️ High-Level Architecture
-
-Key components:
-
-- **Client Layer**: Mobile app / IoT devices capturing pet activity  
-- **API Layer**: Validates and ingests events  
-- **Event Stream**: Decouples ingestion from processing (Kafka/Kinesis)  
-- **Event Store**: Stores historical activity (DynamoDB/S3)  
-- **Prediction Engine**: Computes next potty window  
-- **Notification Service**: Sends alerts asynchronously  
-- **Analytics Layer**: Enables batch insights and ML training  
+- **Client Layer**: Mobile app / IoT devices capturing events  
+- **API Layer**: Event ingestion and validation  
+- **Event Stream**: Kafka / Kinesis for decoupled processing  
+- **Storage**:
+  - Hot data → Redis  
+  - Durable data → DynamoDB / S3  
+- **Prediction Engine**: Real-time + historical signal processing  
+- **Notification Service**: Asynchronous alerts  
+- **Analytics + ML Pipeline**: Model training and feedback loop  
 
 ---
-
-## 🏗️ Architecture Diagram
-
-```mermaid
-flowchart LR
-
-A[Mobile App / IoT Device] --> B[API Gateway]
-B --> C[Event Ingestion Service]
-C --> D[(Event Stream - Kafka / Kinesis)]
-D --> E[(Event Store - DynamoDB / S3)]
-D --> F[Prediction Engine]
-F --> G[(Redis Cache)]
-F --> H[Notification Service]
-H --> I[Push / SMS / Email]
-E --> J[Analytics Pipeline]
-J --> K[(Data Warehouse)]
-K --> L[ML Training]
-L --> F
-
-```
-
-## 🔄 System Flow
-Pet activity events are captured via app or device
-Events are ingested through APIs and pushed to an event stream
-Prediction engine consumes events and evaluates recent + historical patterns
-System computes the next probable potty window
-Notification service asynchronously sends alerts
 
 ## 📊 Scale Assumptions
-~1M pets
-~10–20 events per pet per day
-→ ~10–20M events/day
-Peak ingestion: ~500–1K events/sec
 
-The system is designed to scale horizontally using partitioned streaming and stateless services.
+- ~1M pets  
+- ~10–20M events/day  
+- Peak: ~500–1K events/sec  
 
-## ⚖️ Key Design Decisions & Tradeoffs
-Rule-based vs ML-based prediction
-Rule-based enables explainability and rapid iteration
-ML improves long-term accuracy and personalization
-Real-time vs batch processing
-Real-time improves user experience (timely alerts)
-Batch enables analytics and model training
-Caching vs database reads
-Cache reduces latency for recent activity
-Tradeoff: slight staleness vs performance
+Designed for **horizontal scalability**, **low latency**, and **fault tolerance**.
 
-## ⚙️ Scalability & Data Design
-Partitioning by petId ensures even load distribution
-Stateless prediction services enable horizontal scaling
-Event stream supports replay and backpressure handling
-Hot data cached (Redis), cold data stored in S3/DynamoDB
+---
 
-## ⚠️ Failure Handling
-Event stream ensures durability and replay
-Idempotent processing avoids duplicate predictions
-Notification retries handled asynchronously
-Graceful fallback to last known patterns if prediction fails
+## 🚀 Key Highlights
 
-## ⏱️ Latency Goals
-Event ingestion: < 50 ms
-Prediction: < 100 ms
-Notification trigger: near real-time (< 1 sec end-to-end)
+- Real-time, event-driven system design  
+- Hybrid rule-based + ML prediction approach  
+- Clear tradeoffs between performance, cost, and accuracy  
+- Designed with failure handling and scalability in mind  
+- Includes execution roadmap, risks, and success metrics  
 
-## 🔒 Privacy & Data Considerations
-Minimal personally identifiable information stored
-Pet data logically isolated per user
-Configurable data retention policies
+---
+
+## 📚 Deep Dive
+
+- 📐 [Architecture](docs/architecture.md)  
+- ⚖️ [Design Tradeoffs](docs/tradeoffs.md)  
+- 🗺️ [Execution Roadmap](docs/roadmap.md)  
+- ⚠️ [Risks & Mitigation](docs/risks.md)  
+- 📊 [Success Metrics](docs/metrics.md)  
+
+---
 
 ## 🧪 Prototype
 
-A lightweight prototype demonstrates the core PottyIQ workflow:
+A lightweight prototype demonstrates:
 
 - Event ingestion from sample data  
 - Rule-based prediction logic  
 - Alert generation  
 
-👉 See working prototype in [`/prototype`](./prototype)
+👉 [View Prototype](prototype/README.md)
 
+---
 
-### Files
-- `sample_events.json` — sample events  
-- `predictor.py` — prediction logic  
+## 🧠 TPM Focus
 
-### How to run
+This project emphasizes:
 
-```bash
-cd prototype
-python predictor.py
-```
-### Example output from running the prototype locally:
+- Customer impact and measurable outcomes  
+- Scalable system design across multiple components  
+- Cross-team ownership and execution planning  
+- Tradeoff-driven decision making  
+- Risk identification and mitigation  
 
-### Sample output
-
-```text
-=== PottyIQ Prototype ===
-
-Prediction result:
-- Rule used: feed-rule
-- Next potty window: 2026-03-31 09:30 AM to 2026-03-31 11:00 AM
-- Alert owner at: 2026-03-31 09:20 AM
-```
-This prototype validates the event-driven flow and explainable rule evaluation before evolving toward ML-based prediction.
+---
 
 ## 🚀 Future Enhancements
-ML-based personalized prediction
-Breed/age/activity-aware models
-IoT integrations for automated signal capture
-Multi-pet household optimization
-Advanced analytics dashboards
+
+- ML-based personalized predictions  
+- IoT integrations for automated signal capture  
+- Multi-pet household optimization  
+- Advanced analytics dashboards  
+
+---
 
 ## ⚠️ Disclaimer
 
-This is a conceptual system design project created for learning and demonstration purposes.
-It does not represent any proprietary system or real-world production implementation.
+This is a conceptual system design project created for learning and demonstration purposes.  
+It does not represent any proprietary or production system.
