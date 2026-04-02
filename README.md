@@ -109,22 +109,29 @@ Pet data logically isolated per user
 Configurable data retention policies
 
 ## 🧪 Prototype
+
 A lightweight prototype demonstrates the core PottyIQ workflow:
 
-Event ingestion from sample data
-Rule-based prediction logic
-Alert generation
+- Event ingestion from sample data  
+- Rule-based prediction logic  
+- Alert generation  
 
-👉 See working prototype in /prototype
+👉 See working prototype in [`/prototype`](./prototype)
 
-Files
-sample_events.json — sample events
-predictor.py — prediction logic
-How to run
+---
+### Files
+- `sample_events.json` — sample events  
+- `predictor.py` — prediction logic  
+
+---
+
+### How to run
+
+```bash
 cd prototype
 python predictor.py
-
-Example output from running the prototype locally:
+```
+### Example output from running the prototype locally:
 
 Sample output
 === PottyIQ Prototype ===
