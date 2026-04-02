@@ -40,6 +40,7 @@ PottyIQ uses an **event-driven architecture** to process pet activity signals (f
 - **Notification Service**: Asynchronous alerts  
 - **Analytics + ML Pipeline**: Model training and feedback loop  
 
+[View System Architecture Diagram](diagrams/architecture-diagram.md)
 ---
 
 ## 📊 Scale Assumptions
