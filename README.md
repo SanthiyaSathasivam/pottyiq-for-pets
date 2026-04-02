@@ -118,12 +118,10 @@ A lightweight prototype demonstrates the core PottyIQ workflow:
 
 👉 See working prototype in [`/prototype`](./prototype)
 
----
+
 ### Files
 - `sample_events.json` — sample events  
 - `predictor.py` — prediction logic  
-
----
 
 ### How to run
 
@@ -133,7 +131,9 @@ python predictor.py
 ```
 ### Example output from running the prototype locally:
 
-Sample output
+### Sample output
+
+```text
 === PottyIQ Prototype ===
 
 Prediction result:
