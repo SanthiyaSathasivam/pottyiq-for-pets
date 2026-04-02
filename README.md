@@ -142,7 +142,7 @@ Prediction result:
 - Alert owner at: 2026-03-31 09:20 AM
 
 This prototype validates the event-driven flow and explainable rule evaluation before evolving toward ML-based prediction.
-
+```
 ## 🚀 Future Enhancements
 ML-based personalized prediction
 Breed/age/activity-aware models
