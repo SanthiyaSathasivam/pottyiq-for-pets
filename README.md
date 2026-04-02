@@ -99,15 +99,39 @@ Although individual pets generate moderate data, the system is designed as a mul
 
 ---
 
-## 🧪 Prototype (Optional)
+## 🧪 Prototype
 
-A lightweight prototype is included to simulate:
-- Event ingestion  
-- Rule-based prediction  
-- Alert generation  
+A lightweight prototype is included to demonstrate the core PottyIQ workflow:
+
+- **Event ingestion** from sample pet activity events
+- **Rule-based prediction** for estimating the next potty window
+- **Alert generation** for notifying the owner at the right time
+
+The prototype is available in the [`/prototype`](./prototype) folder.
+
+### Files
+- `sample_events.json` — sample pet activity events
+- `predictor.py` — simple rule-based prediction logic
+- `README.md` — prototype details and run instructions
+
+### How to run
+
+```bash
+cd prototype
+python predictor.py
 
 ---
+### Sample output
 
+```text
+=== PottyIQ Prototype ===
+
+Prediction result:
+- Rule used: feed-rule
+- Next potty window: 2026-03-31 09:30 AM to 2026-03-31 11:00 AM
+- Alert owner at: 2026-03-31 09:20 AM
+
+---
 ## 🚀 Future Enhancements
 
 - Machine learning-based prediction models  
