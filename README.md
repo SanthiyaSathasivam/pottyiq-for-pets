@@ -121,7 +121,7 @@ cd prototype
 python predictor.py
 
 ---
-### Sample output
+## Sample output
 
 ```text
 === PottyIQ Prototype ===
