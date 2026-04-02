@@ -1,31 +1,47 @@
-
 # System Diagram
 
 ```mermaid
 flowchart LR
 
-    %% Client Layer
-    A[Mobile App / IoT Device] --> B[API Gateway]
+    subgraph Client["Client Layer"]
+        A[Mobile App / IoT Device]
+    end
 
-    %% Ingestion Layer
-    B --> C[Event Ingestion Service]
+    subgraph API["API Layer"]
+        B[API Gateway]
+        C[Event Ingestion Service]
+    end
 
-    %% Streaming Layer
-    C --> D[(Event Stream<br/>Kafka / Kinesis)]
+    subgraph Stream["Streaming Layer"]
+        D[(Event Stream<br/>Kafka / Kinesis)]
+    end
 
-    %% Processing Layer
-    D --> E[Prediction Engine]
-    D --> F[(Event Store<br/>DynamoDB / S3)]
+    subgraph Core["Core Processing"]
+        E[Prediction Engine]
+        F[(Event Store<br/>DynamoDB / S3)]
+        G[(Hot State Cache<br/>Redis)]
+    end
 
-    %% Hot State / Cache
-    E --> G[(Hot State Cache<br/>Redis)]
+    subgraph Notify["Notification Layer"]
+        H[Notification Service]
+        I[Push / SMS / Email]
+    end
 
-    %% Notification Layer
-    E --> H[Notification Service]
-    H --> I[Push / SMS / Email]
+    subgraph Analytics["Analytics & ML"]
+        J[Analytics Pipeline]
+        K[(Data Warehouse / Data Lake)]
+        L[ML Training / Model Updates]
+    end
 
-    %% Analytics / ML Layer
-    F --> J[Analytics Pipeline]
-    J --> K[(Data Warehouse / Data Lake)]
-    K --> L[ML Training / Model Updates]
+    A --> B
+    B --> C
+    C --> D
+    D --> E
+    D --> F
+    E --> G
+    E --> H
+    H --> I
+    F --> J
+    J --> K
+    K --> L
     L --> E
