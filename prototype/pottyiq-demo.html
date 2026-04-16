@@ -1,0 +1,788 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>PottyIQ — Smart Potty Training for Pets</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+  body { font-family: 'Inter', system-ui, -apple-system, sans-serif; background:#0b1020; }
+  .glow { box-shadow: 0 0 25px rgba(99,102,241,.35); }
+  .camera-bg {
+    background:
+      radial-gradient(circle at 30% 40%, rgba(250,204,21,.15), transparent 45%),
+      radial-gradient(circle at 70% 60%, rgba(59,130,246,.18), transparent 55%),
+      linear-gradient(180deg,#1a2340,#0f1530);
+  }
+  .outdoor-bg {
+    background:
+      linear-gradient(180deg,#7dd3fc 0%, #bae6fd 50%, #86efac 50%, #4ade80 100%);
+  }
+  .outdoor-bg::after{
+    content:""; position:absolute; inset:0; pointer-events:none;
+    background:
+      radial-gradient(circle at 18% 30%, #fde68a 0 24px, transparent 25px),
+      radial-gradient(ellipse at 80% 22%, rgba(255,255,255,.9) 0 30px, transparent 31px),
+      radial-gradient(ellipse at 55% 22%, rgba(255,255,255,.8) 0 24px, transparent 25px);
+  }
+  .scan::before{
+    content:""; position:absolute; inset:0;
+    background: linear-gradient(180deg, transparent 0%, rgba(34,197,94,.2) 50%, transparent 100%);
+    height:30%; animation: scan 3s linear infinite; pointer-events:none;
+  }
+  @keyframes scan { 0%{transform:translateY(-30%)} 100%{transform:translateY(330%)} }
+  .pulse-dot{animation:pulse 1.4s ease-in-out infinite}
+  @keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.4;transform:scale(1.3)} }
+  .bar{animation:grow 1.2s ease-out forwards; transform-origin:left}
+  @keyframes grow { from{transform:scaleX(0)} to{transform:scaleX(1)} }
+  .slide-in{animation:slide .4s ease-out}
+  @keyframes slide { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
+  .dog {
+    position:absolute; transition: all 2s ease-in-out;
+    font-size:44px; filter: drop-shadow(0 4px 8px rgba(0,0,0,.5));
+  }
+  .pad {
+    position:absolute; bottom:18px; right:18px; width:110px; height:72px;
+    background: linear-gradient(135deg,#16a34a,#22c55e);
+    border-radius:10px; border:2px dashed rgba(255,255,255,.4);
+    display:flex; align-items:center; justify-content:center;
+    color:#052e16; font-weight:700; font-size:10px; letter-spacing:1px;
+  }
+  .owner {
+    position:absolute; bottom:18px; left:18px; font-size:40px;
+    filter: drop-shadow(0 4px 8px rgba(0,0,0,.4));
+  }
+  .leash {
+    position:absolute; left:80px; bottom:55px; width:120px; height:2px;
+    background: repeating-linear-gradient(90deg,#334155 0 6px, transparent 6px 10px);
+    transform-origin: left; transform: rotate(-5deg);
+  }
+  /* Treat Dispenser object inside camera view */
+  .dispenser {
+    position:absolute; top:14px; right:150px; width:70px; height:120px;
+    background: linear-gradient(180deg,#e5e7eb 0%,#9ca3af 55%,#6b7280 100%);
+    border-radius: 10px 10px 14px 14px;
+    border: 2px solid #4b5563;
+    box-shadow: 0 6px 16px rgba(0,0,0,.45), inset 0 2px 0 rgba(255,255,255,.4);
+    display:flex; flex-direction:column; align-items:center; justify-content:space-between;
+    padding:6px 4px; z-index:5;
+  }
+  .dispenser .jar {
+    width:46px; height:50px; background: linear-gradient(180deg,rgba(250,204,21,.95),rgba(234,88,12,.9));
+    border-radius:8px; border:1px solid rgba(0,0,0,.25);
+    box-shadow: inset 0 -6px 0 rgba(0,0,0,.2), inset 0 2px 0 rgba(255,255,255,.4);
+    display:flex; align-items:center; justify-content:center; color:#451a03; font-weight:700; font-size:10px;
+    position:relative;
+  }
+  .dispenser .screen {
+    width:48px; height:12px; background:#052e16; border-radius:3px;
+    color:#22c55e; font-size:8px; letter-spacing:1px;
+    display:flex; align-items:center; justify-content:center;
+    border:1px solid #111; font-weight:700;
+  }
+  .dispenser .chute {
+    width:30px; height:10px; background:#1f2937; border-radius:3px;
+    border:1px solid #0f172a;
+  }
+  .dispenser .led {
+    position:absolute; top:6px; right:6px; width:6px; height:6px; border-radius:50%;
+    background:#22c55e; box-shadow:0 0 6px #22c55e;
+  }
+  .dispenser.armed .led{ background:#22c55e; box-shadow:0 0 8px #22c55e; }
+  .dispenser.firing .led{ background:#fbbf24; box-shadow:0 0 10px #fbbf24; animation:pulse .3s infinite; }
+  .dispenser.miss   .led{ background:#ef4444; box-shadow:0 0 8px #ef4444; }
+  .dispenser-label {
+    position:absolute; top:-18px; right:0; font-size:9px; font-weight:700;
+    color:#fbbf24; background:rgba(0,0,0,.5); padding:2px 6px; border-radius:4px;
+    letter-spacing:.5px;
+  }
+  /* Falling cookie */
+  .cookie-drop {
+    position:absolute; font-size:22px; z-index:6;
+    filter: drop-shadow(0 2px 4px rgba(0,0,0,.5));
+    animation: drop 1.6s cubic-bezier(.5,.05,.7,1) forwards;
+  }
+  @keyframes drop {
+    0%   { transform: translateY(0) rotate(0deg); opacity:1; }
+    70%  { transform: translateY(180px) rotate(180deg); opacity:1; }
+    85%  { transform: translateY(170px) rotate(210deg); }
+    100% { transform: translateY(175px) rotate(220deg); opacity:0.9; }
+  }
+  .chomp {
+    position:absolute; font-size:20px; font-weight:900; color:#fbbf24;
+    z-index:7; animation: chomp 2.4s ease-out forwards;
+    text-shadow: 0 0 6px rgba(0,0,0,.6);
+  }
+  @keyframes chomp {
+    0%{transform:translateY(0) scale(.6);opacity:0}
+    20%{transform:translateY(-8px) scale(1.1);opacity:1}
+    60%{transform:translateY(-18px) scale(1.15);opacity:1}
+    100%{transform:translateY(-38px) scale(1);opacity:0}
+  }
+  .dispenser-shake { animation: shake .2s 3; }
+  @keyframes shake {
+    0%,100%{transform:translateX(0)}
+    25%{transform:translateX(-2px)}
+    75%{transform:translateX(2px)}
+  }
+  .tag{font-size:10px;letter-spacing:.08em;text-transform:uppercase;font-weight:600}
+  .card{background:linear-gradient(180deg,#141b35,#0e1430);border:1px solid rgba(255,255,255,.06)}
+  .chip{background:rgba(99,102,241,.12);border:1px solid rgba(99,102,241,.3);color:#c7d2fe}
+  .phone{background:#0a0f24;border:8px solid #1f2a4a;border-radius:32px}
+  .ring-live{box-shadow:0 0 0 0 rgba(239,68,68,.7);animation:ring 2s infinite}
+  @keyframes ring {
+    0%{box-shadow:0 0 0 0 rgba(239,68,68,.7)}
+    70%{box-shadow:0 0 0 12px rgba(239,68,68,0)}
+    100%{box-shadow:0 0 0 0 rgba(239,68,68,0)}
+  }
+  .tab-btn{transition:all .2s}
+  .tab-btn.active{background:linear-gradient(135deg,#6366f1,#a855f7);color:white;border-color:transparent}
+</style>
+</head>
+<body class="text-slate-100 min-h-screen">
+
+<!-- TOP BAR -->
+<header class="px-8 py-4 flex items-center justify-between border-b border-white/5">
+  <div class="flex items-center gap-3">
+    <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-fuchsia-500 flex items-center justify-center text-xl">🐾</div>
+    <div>
+      <div class="text-lg font-bold tracking-tight">PottyIQ</div>
+      <div class="text-xs text-slate-400">Smart Potty Training • For New Pet Parents</div>
+    </div>
+  </div>
+  <div class="flex items-center gap-6">
+    <div class="flex items-center gap-2 text-sm"><span class="w-2 h-2 rounded-full bg-emerald-400 pulse-dot"></span>Device Online</div>
+    <div class="flex items-center gap-2 text-sm text-slate-300">🧠 Model v4.2 • 94% Accuracy</div>
+    <div class="flex items-center gap-3 text-sm">
+      <div class="w-8 h-8 rounded-full bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center">S</div>
+      <span>Santhiya</span>
+    </div>
+  </div>
+</header>
+
+<!-- SCENARIO TABS -->
+<div class="px-6 pt-5 pb-2 flex items-center gap-2 flex-wrap">
+  <button class="tab-btn active text-sm px-4 py-2 rounded-full border border-white/10 bg-white/5 flex items-center gap-2" data-s="1">
+    <span>🐶</span> 1. Theo — Success
+  </button>
+  <button class="tab-btn text-sm px-4 py-2 rounded-full border border-white/10 bg-white/5 flex items-center gap-2" data-s="2">
+    <span>🐕</span> 2. Luna — Learning
+  </button>
+  <button class="tab-btn text-sm px-4 py-2 rounded-full border border-white/10 bg-white/5 flex items-center gap-2" data-s="3">
+    <span>🦮</span> 3. Max — On Walk
+  </button>
+  <div class="ml-auto text-xs text-slate-500" id="scenarioSubtitle">Good boy pees on pad → treat dispensed</div>
+</div>
+
+<main class="grid grid-cols-12 gap-5 p-6 pt-3">
+
+  <!-- LEFT: pet profile + routine -->
+  <aside class="col-span-3 space-y-5">
+    <div class="card rounded-2xl p-5">
+      <div class="flex items-center gap-3">
+        <div id="petAvatar" class="w-14 h-14 rounded-full bg-amber-200 flex items-center justify-center text-3xl">🐶</div>
+        <div>
+          <div class="font-semibold" id="petName">Theo</div>
+          <div class="text-xs text-slate-400" id="petBreed">Golden Retriever • 11 weeks</div>
+        </div>
+      </div>
+      <div class="mt-4 grid grid-cols-3 gap-2 text-center">
+        <div class="bg-white/5 rounded-lg py-2">
+          <div class="text-lg font-bold text-emerald-400" id="stat1">12</div>
+          <div class="text-[10px] text-slate-400" id="stat1Label">Day Streak</div>
+        </div>
+        <div class="bg-white/5 rounded-lg py-2">
+          <div class="text-lg font-bold text-indigo-300" id="stat2">87%</div>
+          <div class="text-[10px] text-slate-400" id="stat2Label">On-Pad Rate</div>
+        </div>
+        <div class="bg-white/5 rounded-lg py-2">
+          <div class="text-lg font-bold text-amber-300" id="stat3">24</div>
+          <div class="text-[10px] text-slate-400" id="stat3Label">Treats Given</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card rounded-2xl p-5">
+      <div class="flex items-center justify-between mb-3">
+        <h3 class="font-semibold">Today's Routine</h3>
+        <span class="tag text-slate-400">Auto-predicted</span>
+      </div>
+      <ol class="space-y-3 text-sm" id="routineList">
+        <li class="flex items-center justify-between"><span class="flex items-center gap-2">🌅 Wake up</span><span class="text-emerald-400">6:42 AM ✓</span></li>
+        <li class="flex items-center justify-between"><span class="flex items-center gap-2">🍼 After milk</span><span class="text-emerald-400">7:05 AM ✓</span></li>
+        <li class="flex items-center justify-between"><span class="flex items-center gap-2">🥣 After feed</span><span class="text-emerald-400">9:30 AM ✓</span></li>
+        <li class="flex items-center justify-between"><span class="flex items-center gap-2">💧 After water</span><span class="text-amber-300">12:15 PM ⏳</span></li>
+        <li class="flex items-center justify-between opacity-60"><span class="flex items-center gap-2">🥣 After feed</span><span>1:30 PM</span></li>
+        <li class="flex items-center justify-between opacity-60"><span class="flex items-center gap-2">🌙 Before sleep</span><span>9:45 PM</span></li>
+      </ol>
+      <div class="mt-4 p-3 rounded-lg bg-indigo-500/10 border border-indigo-400/20 text-xs text-indigo-100" id="routineHint">
+        ⏱ Next predicted potty window: <b>12:22 PM</b> (±3 min) — based on water intake at 11:58 AM.
+      </div>
+    </div>
+
+    <div class="card rounded-2xl p-5">
+      <h3 class="font-semibold mb-3">Model Training</h3>
+      <div class="text-xs text-slate-400 mb-1 flex justify-between"><span>Cue Detection</span><span id="mAcc">94%</span></div>
+      <div class="w-full h-1.5 bg-white/10 rounded"><div id="mAccBar" class="bar h-1.5 bg-emerald-400 rounded" style="width:94%"></div></div>
+      <div class="text-xs text-slate-400 mb-1 mt-3 flex justify-between"><span>Routine Prediction</span><span id="mRoute">88%</span></div>
+      <div class="w-full h-1.5 bg-white/10 rounded"><div id="mRouteBar" class="bar h-1.5 bg-indigo-400 rounded" style="width:88%"></div></div>
+      <div class="text-xs text-slate-400 mb-1 mt-3 flex justify-between"><span>False-Alert Rate</span><span id="mFalse">3%</span></div>
+      <div class="w-full h-1.5 bg-white/10 rounded"><div id="mFalseBar" class="bar h-1.5 bg-amber-400 rounded" style="width:8%"></div></div>
+      <div class="mt-4 text-[11px] text-slate-400" id="modelNote">Learning from 142 logged incidents over 12 days.</div>
+    </div>
+  </aside>
+
+  <!-- CENTER: camera feed + notifications -->
+  <section class="col-span-6 space-y-5">
+
+    <!-- CAMERA -->
+    <div class="card rounded-2xl p-5">
+      <div class="flex items-center justify-between mb-3">
+        <div class="flex items-center gap-3">
+          <span class="tag text-red-300 px-2 py-1 rounded bg-red-500/10 border border-red-400/20 ring-live">● LIVE</span>
+          <h2 class="font-semibold" id="camTitle">Living Room Camera</h2>
+        </div>
+        <div class="flex gap-2 text-xs" id="camChips">
+          <span class="chip px-2 py-1 rounded-full">Night Vision</span>
+          <span class="chip px-2 py-1 rounded-full">Pose Tracking</span>
+          <span class="chip px-2 py-1 rounded-full">Audio On</span>
+        </div>
+      </div>
+
+      <div id="camStage" class="relative camera-bg rounded-xl overflow-hidden scan" style="aspect-ratio:16/9">
+        <!-- bounding box on dog -->
+        <div id="dogBox" style="position:absolute; left:22%; top:38%; width:210px; height:160px;
+                    border:2px solid #22c55e; border-radius:8px; transition: all 2s ease-in-out;">
+          <div id="dogLabel" class="absolute -top-6 left-0 text-xs bg-emerald-500 text-emerald-950 font-bold px-2 py-0.5 rounded">
+            THEO • cue: legs curling + tail shake (92%)
+          </div>
+        </div>
+        <div class="dog" id="dog" style="left:27%; top:48%;">🐕</div>
+        <div class="pad" id="pad">POTTY PAD</div>
+        <div class="owner" id="owner" style="display:none">🚶‍♂️</div>
+        <div class="leash" id="leash" style="display:none"></div>
+
+        <!-- Treat Dispenser object (physical, wall-mounted above pad) -->
+        <div class="dispenser armed" id="dispenser">
+          <div class="dispenser-label">🍪 TREAT BOT</div>
+          <div class="led"></div>
+          <div class="screen" id="dispScreen">ARMED</div>
+          <div class="jar">🍪</div>
+          <div class="chute"></div>
+        </div>
+
+        <!-- HUD -->
+        <div class="absolute top-3 left-3 space-y-1 text-[11px]">
+          <div id="hudTime" class="bg-black/40 backdrop-blur px-2 py-1 rounded">⏱ 12:19 PM</div>
+          <div id="hudConf" class="bg-black/40 backdrop-blur px-2 py-1 rounded">🎯 Confidence: 92%</div>
+          <div id="hudLoc" class="bg-black/40 backdrop-blur px-2 py-1 rounded">📍 Living Room</div>
+        </div>
+
+        <div id="stageBanner" class="absolute bottom-3 left-3 bg-amber-500/90 text-amber-950 text-xs font-bold px-3 py-1.5 rounded-lg flex items-center gap-2 slide-in">
+          ⚠ PRE-POTTY CUE DETECTED → Calling Theo to the pad
+        </div>
+      </div>
+
+      <!-- Voice Prompt speaker (moved below camera as its own panel) -->
+      <div id="voiceBubble" class="mt-4 bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-4 py-3 rounded-xl shadow-lg slide-in flex items-center gap-3">
+        <div class="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center text-xl flex-shrink-0">🔊</div>
+        <div class="flex-1">
+          <div class="text-[10px] uppercase tracking-wider text-indigo-100" id="voiceLabel">Smart speaker · voice prompt</div>
+          <div id="voiceText" class="text-sm font-semibold">"Theo… come. Pee on the pad. Good boy!"</div>
+        </div>
+        <div class="flex gap-0.5 items-end h-6 flex-shrink-0">
+          <span class="w-0.5 h-3 bg-white/80 rounded animate-pulse"></span>
+          <span class="w-0.5 h-5 bg-white/80 rounded animate-pulse" style="animation-delay:.1s"></span>
+          <span class="w-0.5 h-2 bg-white/80 rounded animate-pulse" style="animation-delay:.2s"></span>
+          <span class="w-0.5 h-6 bg-white/80 rounded animate-pulse" style="animation-delay:.3s"></span>
+          <span class="w-0.5 h-3 bg-white/80 rounded animate-pulse" style="animation-delay:.4s"></span>
+          <span class="w-0.5 h-5 bg-white/80 rounded animate-pulse" style="animation-delay:.5s"></span>
+          <span class="w-0.5 h-4 bg-white/80 rounded animate-pulse" style="animation-delay:.6s"></span>
+        </div>
+      </div>
+
+      <!-- SESSION FLOW -->
+      <div class="mt-5">
+        <div class="flex items-center justify-between mb-2">
+          <h3 class="font-semibold text-sm">Live Training Session — how PottyIQ works</h3>
+          <span class="tag text-slate-400" id="loopLabel">Autonomous loop</span>
+        </div>
+        <div class="grid grid-cols-5 gap-2 text-[11px]" id="stages">
+          <div id="st1" class="stage rounded-lg p-3 bg-white/5 border border-white/10 opacity-70">
+            <div class="text-lg mb-1" id="st1icon">👀</div>
+            <div class="font-semibold" id="st1title">1. Cues detected</div>
+            <div class="text-slate-300" id="st1desc">Leg curl + tail shake</div>
+          </div>
+          <div id="st2" class="stage rounded-lg p-3 bg-white/5 border border-white/10 opacity-70">
+            <div class="text-lg mb-1" id="st2icon">🔊</div>
+            <div class="font-semibold" id="st2title">2. Voice prompt</div>
+            <div class="text-slate-300" id="st2desc">"Theo, come pee on the pad"</div>
+          </div>
+          <div id="st3" class="stage rounded-lg p-3 bg-white/5 border border-white/10 opacity-70">
+            <div class="text-lg mb-1" id="st3icon">🐕</div>
+            <div class="font-semibold" id="st3title">3. Theo walks to pad</div>
+            <div class="text-slate-400" id="st3desc">Pose-tracked to target</div>
+          </div>
+          <div id="st4" class="stage rounded-lg p-3 bg-white/5 border border-white/10 opacity-70">
+            <div class="text-lg mb-1" id="st4icon">💧</div>
+            <div class="font-semibold" id="st4title">4. Pees on pad</div>
+            <div class="text-slate-400" id="st4desc">Pad sensor confirms</div>
+          </div>
+          <div id="st5" class="stage rounded-lg p-3 bg-white/5 border border-white/10 opacity-70">
+            <div class="text-lg mb-1" id="st5icon">🍪</div>
+            <div class="font-semibold" id="st5title">5. Treat dispensed</div>
+            <div class="text-slate-400" id="st5desc">Only on success</div>
+          </div>
+        </div>
+        <div class="mt-2 text-[11px] text-slate-400" id="scenarioFooter">
+          ❌ If Theo pees off the pad, <b class="text-rose-300">no treat is dispensed</b> — the miss is logged and fed back to retrain the cue and routine models.
+        </div>
+      </div>
+    </div>
+
+    <!-- INCIDENT TIMELINE -->
+    <div class="card rounded-2xl p-5">
+      <div class="flex items-center justify-between mb-4">
+        <h3 class="font-semibold">Incident Log — Today</h3>
+        <div class="flex gap-2 text-xs">
+          <span class="chip px-2 py-0.5 rounded-full">💧 Pee</span>
+          <span class="chip px-2 py-0.5 rounded-full">💩 Poop</span>
+          <span class="chip px-2 py-0.5 rounded-full">🍪 Reward</span>
+        </div>
+      </div>
+      <div class="space-y-3 text-sm" id="incidentLog"></div>
+    </div>
+  </section>
+
+  <!-- RIGHT: phone preview + reward dispenser -->
+  <aside class="col-span-3 space-y-5">
+
+    <!-- PHONE -->
+    <div class="card rounded-2xl p-5">
+      <h3 class="font-semibold mb-3">Owner Notifications</h3>
+      <div class="phone p-3 mx-auto" style="max-width:260px">
+        <div class="text-[10px] text-slate-400 mb-2 flex justify-between px-2"><span>12:19 PM</span><span>📶 🔋</span></div>
+        <div id="phoneFeed"></div>
+      </div>
+    </div>
+
+    <!-- REWARD DISPENSER -->
+    <div class="card rounded-2xl p-5">
+      <div class="flex items-center justify-between mb-2">
+        <h3 class="font-semibold">Treat Dispenser</h3>
+        <span class="tag text-emerald-300" id="dispState">Armed</span>
+      </div>
+      <div class="flex items-center gap-3">
+        <div id="dispIcon" class="w-16 h-16 rounded-2xl bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center text-3xl glow">🍪</div>
+        <div class="flex-1">
+          <div class="text-xs text-slate-400">Cookies remaining</div>
+          <div class="text-2xl font-bold" id="dispCount">36 <span class="text-xs text-slate-400">/ 50</span></div>
+          <div class="w-full h-1.5 bg-white/10 rounded mt-1"><div id="dispBar" class="bar h-1.5 bg-amber-400 rounded" style="width:72%"></div></div>
+        </div>
+      </div>
+      <div id="dispNote" class="mt-3 text-[11px] text-slate-400">Auto-fires only when model confirms pee/poop on the pad — never on misses.</div>
+    </div>
+
+    <!-- DEVICES -->
+    <div class="card rounded-2xl p-5">
+      <h3 class="font-semibold mb-3">Connected Devices</h3>
+      <ul class="text-sm space-y-2" id="deviceList">
+        <li class="flex justify-between"><span>📷 Camera (Living Room)</span><span class="text-emerald-400">●</span></li>
+        <li class="flex justify-between"><span>🟩 Smart Potty Pad</span><span class="text-emerald-400">●</span></li>
+        <li class="flex justify-between"><span>🔊 Smart Speaker</span><span class="text-emerald-400">●</span></li>
+        <li class="flex justify-between"><span>🍪 Treat Dispenser</span><span class="text-emerald-400">●</span></li>
+        <li class="flex justify-between"><span>📱 iPhone (Santhiya)</span><span class="text-emerald-400">●</span></li>
+        <li class="flex justify-between"><span>⌚ Apple Watch</span><span class="text-slate-500">○</span></li>
+      </ul>
+    </div>
+  </aside>
+</main>
+
+<footer class="px-8 py-4 text-xs text-slate-500 flex justify-between border-t border-white/5">
+  <span>PottyIQ • Interview Demo Prototype</span>
+  <span>Cues: tail-shake · leg-curl · circling · sniffing · whining &nbsp; | &nbsp; Routines: wake · milk · feed · water · sleep</span>
+</footer>
+
+<script>
+  // ---------- Scenario definitions ----------
+  const scenarios = {
+    1: {
+      name: 'Theo', breed: 'Golden Retriever • 11 weeks', avatar:'🐶', dogEmoji:'🐕',
+      subtitle:'Good boy pees on pad → treat dispensed',
+      stats:[['12','Day Streak','emerald-400'],['87%','On-Pad Rate','indigo-300'],['24','Treats Given','amber-300']],
+      camTitle:'Living Room Camera', hudLoc:'📍 Living Room',
+      model:[['Cue Detection','94%','94%'],['Routine Prediction','88%','88%'],['False-Alert Rate','3%','8%']],
+      modelNote:'Learning from 142 logged incidents over 12 days.',
+      routineHint:'⏱ Next predicted potty window: <b>12:22 PM</b> (±3 min) — based on water intake at 11:58 AM.',
+      disp:{state:'Armed',stateClass:'text-emerald-300', count:'36 <span class="text-xs text-slate-400">/ 50</span>', bar:'72%', note:'Auto-fires only when model confirms pee/poop on the pad — never on misses.'},
+      stages:[
+        ['👀','1. Cues detected','Leg curl + tail shake'],
+        ['🔊','2. Voice prompt','"Theo, come pee on the pad"'],
+        ['🐕','3. Theo walks to pad','Pose-tracked to target'],
+        ['💧','4. Pees on pad','Pad sensor confirms'],
+        ['🍪','5. Treat dispensed','Only on success']
+      ],
+      footer:'❌ If Theo pees off the pad, <b class="text-rose-300">no treat is dispensed</b> — the miss is logged and fed back to retrain the cue and routine models.',
+      incidents:[
+        ['💧','emerald','Pee on pad — 6:48 AM','Triggered: after wake-up • Reward dispensed 🍪','Success','slate-400'],
+        ['💩','emerald','Poop on pad — 9:51 AM','Triggered: after feed • Reward dispensed 🍪','Success','slate-400'],
+        ['💧','emerald','Pee on pad — 12:20 AM','Responded to voice cue in 14s • Reward dispensed 🍪','Success','slate-400']
+      ],
+      phone:[
+        ['now','⚠ Theo looks ready to pee','Leg-curl + tail-shake detected. Guiding her to the pad with voice prompt.'],
+        ['9:51 AM','✅ Theo pooped on the pad!','Treat auto-dispensed 🍪. Great routine after feed.'],
+        ['6:48 AM','💧 First pee of the day — on pad','Wake-up routine on track. Streak: 12 days.']
+      ]
+    },
+
+    2: {
+      name: 'Luna', breed: 'Beagle puppy • 9 weeks • Day 3 of training', avatar:'🐕', dogEmoji:'🐩',
+      subtitle:'Learning dog — voice prompt issued, but no pee on pad yet → no treat, logged for retraining',
+      stats:[['3','Day Streak','amber-300'],['42%','On-Pad Rate','rose-300'],['0','Treats Today','rose-300']],
+      camTitle:'Bedroom Camera', hudLoc:'📍 Bedroom',
+      model:[['Cue Detection','78%','78%'],['Routine Prediction','61%','61%'],['False-Alert Rate','9%','22%']],
+      modelNote:'Still learning Luna — 18 logged incidents over 3 days. Model personalizes per pet.',
+      routineHint:'⏱ Next predicted potty window: <b>12:28 PM</b> (±6 min) — low confidence, routine still forming.',
+      disp:{state:'Not Triggered',stateClass:'text-rose-300', count:'50 <span class="text-xs text-slate-400">/ 50</span>', bar:'100%', note:'No treat dispensed this session — Luna did not pee on the pad. Encouragement only.'},
+      stages:[
+        ['👀','1. Cues detected','Sniffing + circling (74%)'],
+        ['🔊','2. Voice prompt','"Luna, come… treat on pad!"'],
+        ['🐕','3. Luna ignores','Stays on couch'],
+        ['❌','4. No pee on pad','Pad sensor: no signal'],
+        ['🚫','5. No treat','Logged for retraining']
+      ],
+      footer:'🧠 Luna is still learning. We don\'t punish — we just <b class="text-amber-300">withhold the treat</b> and log the incident. Her personalized model updates overnight.',
+      incidents:[
+        ['💧','rose','Pee off pad — 7:12 AM','Location: bedroom rug • Voice prompt was ignored • No treat','Miss','rose-300'],
+        ['🔊','amber','Voice prompt — 10:45 AM','Luna circled but stayed put. No follow-through.','Ignored','amber-300'],
+        ['💩','rose','Poop off pad — 11:30 AM','Hallway • Added to Luna\'s training set','Learn','rose-300']
+      ],
+      phone:[
+        ['now','🔔 Luna showing pre-potty cues','Voice prompt issued. She\'s not on the pad yet — keep an eye.'],
+        ['11:30 AM','❌ Luna pooped off pad','No treat dispensed. Day 3 — this is normal, model is learning.'],
+        ['Tip','💡 Try placing the pad closer to Luna\'s resting spot','Suggested by PottyIQ after 3 misses in the bedroom.']
+      ]
+    },
+
+    3: {
+      name: 'Max', breed: 'Labrador • 1 year • Outdoor trained', avatar:'🦮', dogEmoji:'🐕‍🦺',
+      subtitle:'On walk with owner — PottyIQ predicts from past routine and pings the owner',
+      stats:[['96','Day Streak','emerald-400'],['98%','Outdoor Rate','emerald-400'],['2','Walks Today','indigo-300']],
+      camTitle:'Routine-Based Prediction — Outdoor Walk', hudLoc:'📍 On walk · prediction only',
+      model:[['Routine Prediction','96%','96%'],['Walk-Time Accuracy','93%','93%'],['False-Alert Rate','1%','4%']],
+      modelNote:'Mature routine model for Max — 840+ logged incidents. Predicts potty windows ±2 min from past history.',
+      routineHint:'⏱ Next predicted potty window: <b>NOW</b> — 22 min since last pee + water intake logged at home.',
+      disp:{state:'Standby',stateClass:'text-slate-300', count:'Not used outdoors', bar:'0%', note:'Treat dispenser is indoor-only. On walks, the owner rewards Max directly from the treat pouch.'},
+      stages:[
+        ['🚶','1. Walk started','Owner taps "Start walk" in app'],
+        ['🧠','2. Routine check','22 min since last pee + water logged'],
+        ['📱','3. Push notification','"Max likely needs to pee — now"'],
+        ['🌳','4. Owner guides','Finds a safe grass spot'],
+        ['💧','5. Logged outdoors','Marked in app · routine updated']
+      ],
+      footer:'📍 Outdoor mode uses <b class="text-emerald-300">past incident history and routine</b> — no collar cam, no GPS tracking. Simply predicts from learned patterns and pings the owner.',
+      incidents:[
+        ['🚶','indigo','Walk started — 12:00 PM','Owner tapped "Start walk" in app','—','slate-400'],
+        ['📱','indigo','Notification sent — 12:18 PM','"Max likely needs to pee in ~2 min" • based on routine history','Alert','indigo-300'],
+        ['💧','emerald','Pee outdoors — 12:20 PM','Owner marked as done in app • routine model updated','Success','slate-400']
+      ],
+      phone:[
+        ['now','🚨 Max likely needs to pee — NOW','22 min since last pee at home. Based on past routine, find a spot nearby.'],
+        ['12:00 PM','🚶 Walk started','Routine tracker ON · PottyIQ will predict potty windows.'],
+        ['11:40 AM','💧 Water intake logged','Max drank ~150ml at home. Next potty window ~20–25 min.']
+      ]
+    }
+  };
+
+  // ---------- DOM refs ----------
+  const $ = id => document.getElementById(id);
+  const dog=$('dog'), dogBox=$('dogBox'), dogLabel=$('dogLabel'),
+        voice=$('voiceBubble'), voiceText=$('voiceText'), banner=$('stageBanner'),
+        pad=$('pad'), owner=$('owner'), leash=$('leash'), camStage=$('camStage'),
+        dispenser=$('dispenser'), dispScreen=$('dispScreen');
+  const stages = [1,2,3,4,5].map(i=>$('st'+i));
+
+  // ---------- Dispenser helpers ----------
+  function setDispenserState(state){
+    // state: armed | firing | miss | hidden
+    dispenser.classList.remove('armed','firing','miss');
+    if(state==='hidden'){ dispenser.style.display='none'; return; }
+    dispenser.style.display='flex';
+    dispenser.classList.add(state);
+    dispScreen.textContent = ({armed:'', firing:'', miss:'NO TREAT'})[state] || '';
+    dispScreen.style.color = state==='miss' ? '#fca5a5' : (state==='firing' ? '#fbbf24' : '#22c55e');
+  }
+
+  function fireCookie(targetLeft, targetTop){
+    // shake
+    dispenser.classList.add('dispenser-shake');
+    setTimeout(()=>dispenser.classList.remove('dispenser-shake'), 700);
+    setDispenserState('firing');
+
+    // drop a cookie from the chute toward the dog
+    const rect = dispenser.getBoundingClientRect();
+    const stageRect = camStage.getBoundingClientRect();
+    const startX = rect.left - stageRect.left + rect.width/2 - 11; // center on chute
+    const startY = rect.top  - stageRect.top  + rect.height - 4;
+
+    const cookie = document.createElement('div');
+    cookie.className='cookie-drop';
+    cookie.textContent='🍪';
+    cookie.style.left = startX + 'px';
+    cookie.style.top  = startY + 'px';
+    camStage.appendChild(cookie);
+
+    // chomp indicator at dog's position after drop
+    setTimeout(()=>{
+      const chomp = document.createElement('div');
+      chomp.className='chomp';
+      chomp.textContent='Yum 🍪';
+      chomp.style.left = (parseFloat(dog.style.left))+'%';
+      chomp.style.top  = (parseFloat(dog.style.top)-6)+'%';
+      camStage.appendChild(chomp);
+      setTimeout(()=>chomp.remove(), 2500);
+    }, 1500);
+
+    // cleanup
+    setTimeout(()=>{ cookie.remove(); setDispenserState('armed'); }, 3800);
+  }
+
+  let currentScenario = 1;
+  let cycleToken = 0;
+
+  // ---------- Render scenario static ----------
+  function renderScenario(s){
+    const sc = scenarios[s];
+    // subtitle + header
+    $('scenarioSubtitle').textContent = sc.subtitle;
+    $('petName').textContent = sc.name;
+    $('petBreed').textContent = sc.breed;
+    $('petAvatar').textContent = sc.avatar;
+    dog.textContent = sc.dogEmoji;
+    $('camTitle').textContent = sc.camTitle;
+    $('hudLoc').textContent = sc.hudLoc;
+
+    // stats
+    const colors = sc.stats;
+    $('stat1').textContent = colors[0][0]; $('stat1Label').textContent = colors[0][1];
+    $('stat1').className = 'text-lg font-bold text-'+colors[0][2];
+    $('stat2').textContent = colors[1][0]; $('stat2Label').textContent = colors[1][1];
+    $('stat2').className = 'text-lg font-bold text-'+colors[1][2];
+    $('stat3').textContent = colors[2][0]; $('stat3Label').textContent = colors[2][1];
+    $('stat3').className = 'text-lg font-bold text-'+colors[2][2];
+
+    // model bars
+    $('mAcc').textContent = sc.model[0][1]; $('mAccBar').style.width = sc.model[0][2];
+    $('mRoute').textContent = sc.model[1][1]; $('mRouteBar').style.width = sc.model[1][2];
+    $('mFalse').textContent = sc.model[2][1]; $('mFalseBar').style.width = sc.model[2][2];
+    $('modelNote').textContent = sc.modelNote;
+    $('routineHint').innerHTML = sc.routineHint;
+
+    // dispenser
+    $('dispState').textContent = sc.disp.state;
+    $('dispState').className = 'tag ' + sc.disp.stateClass;
+    $('dispCount').innerHTML = sc.disp.count;
+    $('dispBar').style.width = sc.disp.bar;
+    $('dispNote').textContent = sc.disp.note;
+
+    // stage titles
+    sc.stages.forEach((st,i)=>{
+      $('st'+(i+1)+'icon').textContent = st[0];
+      $('st'+(i+1)+'title').textContent = st[1];
+      $('st'+(i+1)+'desc').textContent = st[2];
+    });
+    $('scenarioFooter').innerHTML = sc.footer;
+
+    // incidents
+    $('incidentLog').innerHTML = sc.incidents.map(inc => `
+      <div class="flex items-center gap-3 slide-in">
+        <div class="w-10 h-10 rounded-lg bg-${inc[1]}-500/20 flex items-center justify-center">${inc[0]}</div>
+        <div class="flex-1">
+          <div><b>${inc[2]}</b></div>
+          <div class="text-xs text-slate-400">${inc[3]}</div>
+        </div>
+        <div class="text-xs text-${inc[5]}">${inc[4]}</div>
+      </div>`).join('');
+
+    // phone feed
+    $('phoneFeed').innerHTML = sc.phone.map(p=>`
+      <div class="bg-slate-800/80 rounded-xl p-3 mb-2 slide-in">
+        <div class="flex items-center gap-2 text-[10px] text-slate-400 mb-1">🐾 PottyIQ • ${p[0]}</div>
+        <div class="font-semibold text-sm">${p[1]}</div>
+        <div class="text-xs text-slate-300">${p[2]}</div>
+      </div>`).join('');
+
+    // stage background
+    camStage.classList.remove('camera-bg','outdoor-bg');
+    camStage.classList.add(s===3 ? 'outdoor-bg' : 'camera-bg');
+    pad.style.display = s===3 ? 'none' : 'flex';
+    owner.style.display = s===3 ? 'block' : 'none';
+    leash.style.display = s===3 ? 'block' : 'none';
+  }
+
+  // ---------- Stage helpers ----------
+  const setActive = (idx, completedColor='emerald')=>{
+    stages.forEach((el,i)=>{
+      el.className = 'stage rounded-lg p-3 bg-white/5 border border-white/10 opacity-70';
+      if(i < idx){
+        el.className = 'stage rounded-lg p-3 bg-'+completedColor+'-500/20 border border-'+completedColor+'-400/50';
+      }
+      if(i === idx){
+        el.className = 'stage rounded-lg p-3 bg-indigo-500/25 border border-indigo-400/60 ring-2 ring-indigo-400';
+      }
+    });
+  };
+  const setBanner = (html, tone)=>{
+    banner.className = 'absolute bottom-3 left-3 text-xs font-bold px-3 py-1.5 rounded-lg flex items-center gap-2 slide-in ' + tone;
+    banner.innerHTML = html;
+  };
+  const wait = ms => new Promise(r=>setTimeout(r,ms));
+
+  // ---------- Cycles per scenario ----------
+  async function cycleTheo(token){
+    const name='THEO';
+    setDispenserState('armed');
+    // reset
+    dogBox.style.left='22%'; dogBox.style.top='38%'; dogBox.style.width='210px'; dogBox.style.height='160px';
+    dog.style.left='27%'; dog.style.top='48%';
+    dogLabel.textContent = `${name} • cue: legs curling + tail shake (92%)`;
+    voice.style.opacity='0.5'; voiceText.textContent='Analyzing Theo…';
+    setActive(0);
+    setBanner('⚠ PRE-POTTY CUE DETECTED → Calling Theo to the pad','bg-amber-500/90 text-amber-950');
+    await wait(2200); if(token!==cycleToken) return;
+
+    setActive(1);
+    voice.style.opacity='1'; voiceText.textContent='"Theo… come. Pee on the pad. Good boy!"';
+    await wait(2200); if(token!==cycleToken) return;
+
+    setActive(2);
+    dogBox.style.left='60%'; dogBox.style.top='55%'; dogBox.style.width='150px'; dogBox.style.height='110px';
+    dogLabel.textContent = `${name} • walking to pad`;
+    dog.style.left='66%'; dog.style.top='62%';
+    setBanner('🐕 Theo is responding to the voice cue…','bg-indigo-500/90 text-white');
+    await wait(2400); if(token!==cycleToken) return;
+
+    setActive(3);
+    dogLabel.textContent = `${name} • on pad · peeing ✓`;
+    setBanner('💧 Pee detected ON pad · pad sensor confirmed','bg-emerald-500/90 text-emerald-950');
+    voiceText.textContent='"Yes! Good job, Theo!"';
+    await wait(2000); if(token!==cycleToken) return;
+
+    setActive(4);
+    setBanner('🍪 Treat auto-dispensed — success rewarded','bg-emerald-500/90 text-emerald-950');
+    voiceText.textContent='"Here\'s your treat 🍪"';
+    fireCookie();  // <-- physical dispenser drops a cookie to Theo
+    await wait(2800); if(token!==cycleToken) return;
+
+    if(currentScenario===1) cycleTheo(token);
+  }
+
+  async function cycleLuna(token){
+    const name='LUNA';
+    setDispenserState('armed');
+    dogBox.style.left='22%'; dogBox.style.top='38%'; dogBox.style.width='210px'; dogBox.style.height='160px';
+    dog.style.left='27%'; dog.style.top='48%';
+    dogLabel.textContent = `${name} • cue: sniffing + circling (74%)`;
+    voice.style.opacity='0.5'; voiceText.textContent='Analyzing Luna…';
+    setActive(0, 'amber');
+    setBanner('⚠ PRE-POTTY CUE DETECTED → Calling Luna to the pad','bg-amber-500/90 text-amber-950');
+    await wait(2200); if(token!==cycleToken) return;
+
+    setActive(1, 'amber');
+    voice.style.opacity='1'; voiceText.textContent='"Luna… come here. Treat waiting on the pad!"';
+    await wait(2400); if(token!==cycleToken) return;
+
+    // Luna ignores — dog does NOT move to pad
+    setActive(2, 'amber');
+    dogLabel.textContent = `${name} • ignoring prompt · still on couch`;
+    setBanner('😐 Luna did not respond — still in starting spot','bg-amber-500/90 text-amber-950');
+    voiceText.textContent='"Luna? Come on, girl…"';
+    // tiny jiggle
+    dog.style.left='29%';
+    await wait(2600); if(token!==cycleToken) return;
+
+    // Pees off pad
+    setActive(3, 'rose');
+    dogBox.style.left='16%'; dogBox.style.top='64%'; dogBox.style.width='150px'; dogBox.style.height='110px';
+    dogLabel.textContent = `${name} • peeing OFF pad ✗`;
+    dog.style.left='20%'; dog.style.top='72%';
+    setBanner('❌ Pee detected OFF pad · pad sensor silent','bg-rose-500/90 text-white');
+    voiceText.textContent='"Oops — let\'s try again next time."';
+    await wait(2400); if(token!==cycleToken) return;
+
+    // No treat — dispenser shows NO TREAT, no cookie drop
+    setActive(4, 'rose');
+    setBanner('🚫 NO treat dispensed · incident logged for retraining','bg-rose-500/90 text-white');
+    voiceText.textContent='"No treat this time. You\'ll get it, Luna."';
+    setDispenserState('miss');
+    stages[4].className = 'stage rounded-lg p-3 bg-rose-500/20 border border-rose-400/50 ring-2 ring-rose-400';
+    await wait(3200); if(token!==cycleToken) return;
+
+    if(currentScenario===2) cycleLuna(token);
+  }
+
+  async function cycleMax(token){
+    const name='MAX';
+    setDispenserState('hidden'); // outdoor — no dispenser
+    // outdoor layout: owner left, dog right; no pad, no camera/bbox
+    dogBox.style.display='none';
+    dog.style.left='65%'; dog.style.top='62%';
+    $('voiceLabel').textContent='Owner phone · push notification';
+    voice.style.opacity='0.5'; voiceText.textContent='Walk started — predicting from past routine…';
+    setActive(0);
+    setBanner('🚶 Walk in progress · routine tracker ON','bg-indigo-500/90 text-white');
+    await wait(2400); if(token!==cycleToken) return;
+
+    setActive(1);
+    setBanner('🧠 Routine check: 22 min since last pee + water logged at home','bg-amber-500/90 text-amber-950');
+    await wait(2400); if(token!==cycleToken) return;
+
+    // Push notification (no live cam cues — pure routine-based prediction)
+    setActive(2);
+    voice.style.opacity='1';
+    voiceText.textContent='📱 "Max likely needs to pee now — based on past routine."';
+    setBanner('📱 Push notification sent to owner','bg-indigo-500/90 text-white');
+    await wait(2600); if(token!==cycleToken) return;
+
+    // Owner guides
+    setActive(3);
+    dog.style.left='55%'; dog.style.top='66%';
+    setBanner('🌳 Owner acknowledged — heading to a grass spot','bg-emerald-500/90 text-emerald-950');
+    voiceText.textContent='📱 "Good — guide Max to a safe grass patch."';
+    await wait(2400); if(token!==cycleToken) return;
+
+    // Success logged by owner in app
+    setActive(4);
+    setBanner('💧 Owner marked "pee done" in app · routine updated · streak +1','bg-emerald-500/90 text-emerald-950');
+    voiceText.textContent='📱 "Logged! Next predicted window ~25 min."';
+    await wait(2800); if(token!==cycleToken) return;
+
+    $('voiceLabel').textContent='Smart speaker · voice prompt';
+    dogBox.style.display='block';
+    if(currentScenario===3) cycleMax(token);
+  }
+
+  function startCycle(){
+    cycleToken++;
+    const tok = cycleToken;
+    if(currentScenario===1) cycleTheo(tok);
+    else if(currentScenario===2) cycleLuna(tok);
+    else cycleMax(tok);
+  }
+
+  // ---------- Tab wiring ----------
+  document.querySelectorAll('.tab-btn').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+      btn.classList.add('active');
+      currentScenario = parseInt(btn.dataset.s);
+      renderScenario(currentScenario);
+      startCycle();
+    });
+  });
+
+  // initial
+  renderScenario(1);
+  startCycle();
+</script>
+</body>
+</html>
